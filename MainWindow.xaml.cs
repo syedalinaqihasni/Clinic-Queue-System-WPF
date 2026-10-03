@@ -1,30 +1,470 @@
-using System; using System.Diagnostics; using System.Globalization; using System.IO; using System.Linq; using System.Text; using System.Windows; using System.Windows.Controls; using Microsoft.Win32; using ClinicQueueSystem.Models; using ClinicQueueSystem.Services;
-namespace ClinicQueueSystem {
- public partial class MainWindow : Window {
-  private User _user; public MainWindow(){ InitializeComponent(); JsonStore.Initialize(); Login(); if(_user==null){Close();return;} UserLabel.Text=_user.FullName+" ("+_user.Role+")"; StoragePathLabel.Text=JsonStore.FilePath; ClinicNameBox.Text=JsonStore.Data.ClinicName; FooterBox.Text=JsonStore.Data.TicketFooter; LoadCombos(); RefreshGrids(); UpdatePreview(); if(_user.Role!="ADMIN") { foreach(TabItem tab in ((TabControl)((Grid)Content).Children.OfType<TabControl>().First()).Items) { if((string)tab.Header=="Admin") tab.Visibility=Visibility.Collapsed; } } }
-  private void Login(){ var w=new LoginWindow(); if(w.ShowDialog()==true) _user=w.AuthenticatedUser; }
-  private void LoadCombos(){ DepartmentCombo.ItemsSource=JsonStore.Data.Departments.Where(x=>x.Active).ToList(); ShiftCombo.ItemsSource=JsonStore.Data.Shifts.Where(x=>x.Active).ToList(); CounterCombo.ItemsSource=JsonStore.Data.Counters.Where(x=>x.Active).ToList(); if(DepartmentCombo.Items.Count>0)DepartmentCombo.SelectedIndex=0; if(ShiftCombo.Items.Count>0)ShiftCombo.SelectedIndex=0; if(CounterCombo.Items.Count>0)CounterCombo.SelectedIndex=0; }
-  private void Department_Changed(object s,SelectionChangedEventArgs e){ var d=DepartmentCombo.SelectedItem as Department; DoctorCombo.ItemsSource=d==null?null:JsonStore.Data.Doctors.Where(x=>x.Active&&(string.IsNullOrWhiteSpace(x.DepartmentCode)||x.DepartmentCode==d.Code)).ToList(); if(d!=null)PriceBox.Text=d.DefaultPrice.ToString("0.00",CultureInfo.InvariantCulture); PreviewDepartment.Text=d==null?"Select department":d.Name; UpdatePreview(); }
-  private void UpdatePreview(){var d=DepartmentCombo.SelectedItem as Department;var sh=ShiftCombo.SelectedItem as Shift;if(d==null||sh==null){NextTicketLabel.Text="---";return;}string key=DateTime.Now.ToString("yyyy-MM-dd")+"|"+sh.Name+"|"+d.Code;int n;JsonStore.Data.Sequences.TryGetValue(key,out n);NextTicketLabel.Text=d.Code+(n+1).ToString("000");}
-  private void Print_Click(object s,RoutedEventArgs e){try{var d=DepartmentCombo.SelectedItem as Department;var doc=DoctorCombo.SelectedItem as Doctor;var sh=ShiftCombo.SelectedItem as Shift;var c=CounterCombo.SelectedItem as Counter;decimal price;if(!decimal.TryParse(PriceBox.Text,NumberStyles.Number,CultureInfo.InvariantCulture,out price)||price<0)throw new InvalidOperationException("Enter a valid non-negative fee.");var t=QueueService.Issue(d,doc,sh,c,price,_user.Username);TicketPrinter.Print(t);StatusLabel.Text="Printed ticket "+t.TicketNumber;FooterStatus.Text="Last ticket: "+t.TicketNumber;RefreshGrids();UpdatePreview();}catch(Exception ex){MessageBox.Show(ex.Message,"Ticket error",MessageBoxButton.OK,MessageBoxImage.Error);}}
-  private void RefreshGrids(){RecentGrid.ItemsSource=null;RecentGrid.ItemsSource=JsonStore.Data.Tickets.OrderByDescending(x=>x.Date).ThenByDescending(x=>x.Time).Take(12).Select(x=>new{ x.TicketNumber,x.DepartmentName,x.DoctorName,x.ShiftName,x.Time,x.Price,x.Status}).ToList();HistoryGrid.ItemsSource=null;HistoryGrid.ItemsSource=JsonStore.Data.Tickets.OrderByDescending(x=>x.Date).ThenByDescending(x=>x.Time).ToList();}
-  private Ticket SelectedTicket()=>HistoryGrid.SelectedItem as Ticket;
-  private void Refresh_Click(object s,RoutedEventArgs e)=>RefreshGrids(); private void Reprint_Click(object s,RoutedEventArgs e){var t=SelectedTicket();if(t==null){MessageBox.Show("Select a ticket first.");return;}try{QueueService.Reprint(t,_user.Username);TicketPrinter.Print(t);RefreshGrids();}catch(Exception ex){MessageBox.Show(ex.Message);}}
-  private void Void_Click(object s,RoutedEventArgs e){var t=SelectedTicket();if(t==null){MessageBox.Show("Select a ticket first.");return;}if(MessageBox.Show("Void "+t.TicketNumber+"?","Confirm",MessageBoxButton.YesNo)!=MessageBoxResult.Yes)return;QueueService.Void(t,_user.Username);RefreshGrids();}
-  private void Export_Click(object s,RoutedEventArgs e){var dlg=new SaveFileDialog{Filter="CSV file|*.csv",FileName="clinic-tickets-"+DateTime.Now.ToString("yyyyMMdd")+".csv"};if(dlg.ShowDialog()!=true)return;var sb=new StringBuilder("TicketNumber,Date,Time,Department,Doctor,Shift,Counter,Price,Status,CreatedBy\r\n");foreach(var t in JsonStore.Data.Tickets)sb.AppendLine(string.Join(",",new[]{t.TicketNumber,t.Date,t.Time,t.DepartmentName,t.DoctorName,t.ShiftName,t.CounterName,t.Price.ToString(CultureInfo.InvariantCulture),t.Status,t.CreatedBy}.Select(Csv)));File.WriteAllText(dlg.FileName,sb.ToString(),new UTF8Encoding(true));MessageBox.Show("CSV exported.");} private string Csv(string x)=>"\""+(x??"").Replace("\"","\"\"")+"\"";
-  private void Admin_Click(object s,RoutedEventArgs e){if(_user.Role!="ADMIN"){MessageBox.Show("Administrator access required.");return;}((TabControl)((Grid)Content).Children.OfType<TabControl>().First()).SelectedIndex=2;}
-  private void Logout_Click(object s,RoutedEventArgs e){_user=null;Login();if(_user==null)Close();else{UserLabel.Text=_user.FullName+" ("+_user.Role+")";}}
-  private void SaveSettings_Click(object s,RoutedEventArgs e){if(!IsAdmin())return;JsonStore.Data.ClinicName=ClinicNameBox.Text.Trim();JsonStore.Data.TicketFooter=FooterBox.Text.Trim();JsonStore.Save();MessageBox.Show("Settings saved.");}
-  private bool IsAdmin(){if(_user.Role=="ADMIN")return true;MessageBox.Show("Administrator access required.");return false;}
-  private void OpenDataFolder_Click(object s,RoutedEventArgs e){try{Process.Start("explorer.exe",JsonStore.Folder);}catch(Exception ex){MessageBox.Show(ex.Message);}}
-  private void Backup_Click(object s,RoutedEventArgs e){if(!IsAdmin())return;JsonStore.Save();var dlg=new SaveFileDialog{Filter="JSON backup|*.json",FileName="clinic-backup-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+".json"};if(dlg.ShowDialog()==true){File.Copy(JsonStore.FilePath,dlg.FileName,true);MessageBox.Show("Backup saved.");}}
-  private void ManageDepartments_Click(object s,RoutedEventArgs e)=>ManageList("Departments",JsonStore.Data.Departments.Select(x=>$"{x.Code} | {x.Name} | Rs {x.DefaultPrice} | Active={x.Active}").ToList(),"Add/edit records in the JSON file for this starter release.");
-  private void ManageDoctors_Click(object s,RoutedEventArgs e)=>ManageList("Doctors",JsonStore.Data.Doctors.Select(x=>$"{x.Name} | Department={x.DepartmentCode} | Rs {x.DefaultPrice} | Active={x.Active}").ToList(),"Add/edit records in the JSON file for this starter release.");
-  private void ManageShifts_Click(object s,RoutedEventArgs e)=>ManageList("Shifts",JsonStore.Data.Shifts.Select(x=>$"{x.Name} | {x.StartTime}-{x.EndTime} | Active={x.Active}").ToList(),"Add/edit records in the JSON file for this starter release.");
-  private void ManageCounters_Click(object s,RoutedEventArgs e)=>ManageList("Counters",JsonStore.Data.Counters.Select(x=>$"{x.Name} | Printer={x.PrinterName} | Active={x.Active}").ToList(),"Add/edit records in the JSON file for this starter release.");
-  private void ManagePrinters_Click(object s,RoutedEventArgs e)=>ManageList("Printers",JsonStore.Data.Printers.Select(x=>$"{x.Name} | Windows printer={x.WindowsPrinterName} | {x.PaperWidthMm}mm | Active={x.Active}").ToList(),"Set WindowsPrinterName to the exact installed printer name in clinic-data.json.");
-  private void ManageUsers_Click(object s,RoutedEventArgs e)=>ManageList("Users",JsonStore.Data.Users.Select(x=>$"{x.Username} | {x.FullName} | {x.Role} | Active={x.Active}").ToList(),"New user passwords must be hashed. Ask for a future version with a dedicated user editor.");
-  private void ManageList(string title,System.Collections.Generic.List<string> rows,string note){if(!IsAdmin())return;MessageBox.Show(string.Join(Environment.NewLine,rows)+Environment.NewLine+Environment.NewLine+note,title,MessageBoxButton.OK,MessageBoxImage.Information);}
- }
- public class LoginWindow:Window { public User AuthenticatedUser{get;private set;} private TextBox username; private PasswordBox password; public LoginWindow(){Title="Clinic Queue Login";Width=380;Height=300;ResizeMode=ResizeMode.NoResize;WindowStartupLocation=WindowStartupLocation.CenterScreen;var p=new StackPanel{Margin=new Thickness(22)};p.Children.Add(new TextBlock{Text="Clinic Queue System",FontSize=22,FontWeight=FontWeights.Bold,Margin=new Thickness(0,0,0,14)});p.Children.Add(new TextBlock{Text="Username"});username=new TextBox{Text="admin"};p.Children.Add(username);p.Children.Add(new TextBlock{Text="Password"});password=new PasswordBox{Padding=new Thickness(7),Margin=new Thickness(4)};p.Children.Add(password);var b=new Button{Content="Sign in",Margin=new Thickness(4,14,4,4)};b.Click+=SignIn;p.Children.Add(b);p.Children.Add(new TextBlock{Text="First login: admin / admin123",Foreground=System.Windows.Media.Brushes.Gray,Margin=new Thickness(4)});Content=p;Loaded+=(s,e)=>password.Focus();} private void SignIn(object s,RoutedEventArgs e){var u=JsonStore.Data.Users.FirstOrDefault(x=>x.Active&&string.Equals(x.Username,username.Text.Trim(),StringComparison.OrdinalIgnoreCase));if(u!=null&&PasswordService.Verify(password.Password,u.PasswordHash)){AuthenticatedUser=u;DialogResult=true;Close();}else MessageBox.Show("Invalid username or password.","Sign in failed",MessageBoxButton.OK,MessageBoxImage.Warning);} }
+using System;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using ClinicQueueSystem.Models;
+using ClinicQueueSystem.Services;
+using Microsoft.Win32;
+
+namespace ClinicQueueSystem
+{
+    public partial class MainWindow : Window
+    {
+        private User _user;
+
+        public MainWindow()
+        {
+            InitializeComponent();
+            JsonStore.Initialize();
+            Login();
+            if (_user == null)
+            {
+                Close();
+                return;
+            }
+            UserLabel.Text = _user.FullName + " (" + _user.Role + ")";
+            StoragePathLabel.Text = JsonStore.FilePath;
+            ClinicNameBox.Text = JsonStore.Data.ClinicName;
+            FooterBox.Text = JsonStore.Data.TicketFooter;
+            LoadCombos();
+            RefreshGrids();
+            UpdatePreview();
+            if (_user.Role != "ADMIN")
+            {
+                foreach (
+                    TabItem tab in (
+                        (TabControl)((Grid)Content).Children.OfType<TabControl>().First()
+                    ).Items
+                )
+                {
+                    if ((string)tab.Header == "Admin")
+                        tab.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+
+        private void Login()
+        {
+            var w = new LoginWindow();
+            if (w.ShowDialog() == true)
+                _user = w.AuthenticatedUser;
+        }
+
+        private void LoadCombos()
+        {
+            DepartmentCombo.ItemsSource = JsonStore.Data.Departments.Where(x => x.Active).ToList();
+            ShiftCombo.ItemsSource = JsonStore.Data.Shifts.Where(x => x.Active).ToList();
+            CounterCombo.ItemsSource = JsonStore.Data.Counters.Where(x => x.Active).ToList();
+            if (DepartmentCombo.Items.Count > 0)
+                DepartmentCombo.SelectedIndex = 0;
+            if (ShiftCombo.Items.Count > 0)
+                ShiftCombo.SelectedIndex = 0;
+            if (CounterCombo.Items.Count > 0)
+                CounterCombo.SelectedIndex = 0;
+        }
+
+        private void Department_Changed(object s, SelectionChangedEventArgs e)
+        {
+            var d = DepartmentCombo.SelectedItem as Department;
+            DoctorCombo.ItemsSource =
+                d == null
+                    ? null
+                    : JsonStore
+                        .Data.Doctors.Where(x =>
+                            x.Active
+                            && (
+                                string.IsNullOrWhiteSpace(x.DepartmentCode)
+                                || x.DepartmentCode == d.Code
+                            )
+                        )
+                        .ToList();
+            if (d != null)
+                PriceBox.Text = d.DefaultPrice.ToString("0.00", CultureInfo.InvariantCulture);
+            PreviewDepartment.Text = d == null ? "Select department" : d.Name;
+            UpdatePreview();
+        }
+
+        private void UpdatePreview()
+        {
+            var d = DepartmentCombo.SelectedItem as Department;
+            var sh = ShiftCombo.SelectedItem as Shift;
+            if (d == null || sh == null)
+            {
+                NextTicketLabel.Text = "---";
+                return;
+            }
+            string key = DateTime.Now.ToString("yyyy-MM-dd") + "|" + sh.Name + "|" + d.Code;
+            int n;
+            JsonStore.Data.Sequences.TryGetValue(key, out n);
+            NextTicketLabel.Text = d.Code + (n + 1).ToString("000");
+        }
+
+        private void Print_Click(object s, RoutedEventArgs e)
+        {
+            try
+            {
+                var d = DepartmentCombo.SelectedItem as Department;
+                var doc = DoctorCombo.SelectedItem as Doctor;
+                var sh = ShiftCombo.SelectedItem as Shift;
+                var c = CounterCombo.SelectedItem as Counter;
+                decimal price;
+                if (
+                    !decimal.TryParse(
+                        PriceBox.Text,
+                        NumberStyles.Number,
+                        CultureInfo.InvariantCulture,
+                        out price
+                    )
+                    || price < 0
+                )
+                    throw new InvalidOperationException("Enter a valid non-negative fee.");
+                var t = QueueService.Issue(d, doc, sh, c, price, _user.Username);
+                TicketPrinter.Print(t);
+                StatusLabel.Text = "Printed ticket " + t.TicketNumber;
+                FooterStatus.Text = "Last ticket: " + t.TicketNumber;
+                RefreshGrids();
+                UpdatePreview();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Ticket error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+        }
+
+        private void RefreshGrids()
+        {
+            RecentGrid.ItemsSource = null;
+            RecentGrid.ItemsSource = JsonStore
+                .Data.Tickets.OrderByDescending(x => x.Date)
+                .ThenByDescending(x => x.Time)
+                .Take(12)
+                .Select(x => new
+                {
+                    x.TicketNumber,
+                    x.DepartmentName,
+                    x.DoctorName,
+                    x.ShiftName,
+                    x.Time,
+                    x.Price,
+                    x.Status,
+                })
+                .ToList();
+            HistoryGrid.ItemsSource = null;
+            HistoryGrid.ItemsSource = JsonStore
+                .Data.Tickets.OrderByDescending(x => x.Date)
+                .ThenByDescending(x => x.Time)
+                .ToList();
+        }
+
+        private Ticket SelectedTicket() => HistoryGrid.SelectedItem as Ticket;
+
+        private void Refresh_Click(object s, RoutedEventArgs e) => RefreshGrids();
+
+        private void Reprint_Click(object s, RoutedEventArgs e)
+        {
+            var t = SelectedTicket();
+            if (t == null)
+            {
+                MessageBox.Show("Select a ticket first.");
+                return;
+            }
+            try
+            {
+                QueueService.Reprint(t, _user.Username);
+                TicketPrinter.Print(t);
+                RefreshGrids();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void Void_Click(object s, RoutedEventArgs e)
+        {
+            var t = SelectedTicket();
+            if (t == null)
+            {
+                MessageBox.Show("Select a ticket first.");
+                return;
+            }
+            if (
+                MessageBox.Show("Void " + t.TicketNumber + "?", "Confirm", MessageBoxButton.YesNo)
+                != MessageBoxResult.Yes
+            )
+                return;
+            QueueService.Void(t, _user.Username);
+            RefreshGrids();
+        }
+
+        private void Export_Click(object s, RoutedEventArgs e)
+        {
+            var dlg = new SaveFileDialog
+            {
+                Filter = "CSV file|*.csv",
+                FileName = "clinic-tickets-" + DateTime.Now.ToString("yyyyMMdd") + ".csv",
+            };
+            if (dlg.ShowDialog() != true)
+                return;
+            var sb = new StringBuilder(
+                "TicketNumber,Date,Time,Department,Doctor,Shift,Counter,Price,Status,CreatedBy\r\n"
+            );
+            foreach (var t in JsonStore.Data.Tickets)
+                sb.AppendLine(
+                    string.Join(
+                        ",",
+                        new[]
+                        {
+                            t.TicketNumber,
+                            t.Date,
+                            t.Time,
+                            t.DepartmentName,
+                            t.DoctorName,
+                            t.ShiftName,
+                            t.CounterName,
+                            t.Price.ToString(CultureInfo.InvariantCulture),
+                            t.Status,
+                            t.CreatedBy,
+                        }.Select(Csv)
+                    )
+                );
+            File.WriteAllText(dlg.FileName, sb.ToString(), new UTF8Encoding(true));
+            MessageBox.Show("CSV exported.");
+        }
+
+        private string Csv(string x) => "\"" + (x ?? "").Replace("\"", "\"\"") + "\"";
+
+        private void Admin_Click(object s, RoutedEventArgs e)
+        {
+            if (_user.Role != "ADMIN")
+            {
+                MessageBox.Show("Administrator access required.");
+                return;
+            }
+            ((TabControl)((Grid)Content).Children.OfType<TabControl>().First()).SelectedIndex = 2;
+        }
+
+        private void Logout_Click(object s, RoutedEventArgs e)
+        {
+            _user = null;
+            Login();
+            if (_user == null)
+                Close();
+            else
+            {
+                UserLabel.Text = _user.FullName + " (" + _user.Role + ")";
+            }
+        }
+
+        private void SaveSettings_Click(object s, RoutedEventArgs e)
+        {
+            if (!IsAdmin())
+                return;
+            JsonStore.Data.ClinicName = ClinicNameBox.Text.Trim();
+            JsonStore.Data.TicketFooter = FooterBox.Text.Trim();
+            JsonStore.Save();
+            MessageBox.Show("Settings saved.");
+        }
+
+        private bool IsAdmin()
+        {
+            if (_user.Role == "ADMIN")
+                return true;
+            MessageBox.Show("Administrator access required.");
+            return false;
+        }
+
+        private void OpenDataFolder_Click(object s, RoutedEventArgs e)
+        {
+            try
+            {
+                Process.Start("explorer.exe", JsonStore.Folder);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void Backup_Click(object s, RoutedEventArgs e)
+        {
+            if (!IsAdmin())
+                return;
+            JsonStore.Save();
+            var dlg = new SaveFileDialog
+            {
+                Filter = "JSON backup|*.json",
+                FileName = "clinic-backup-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json",
+            };
+            if (dlg.ShowDialog() == true)
+            {
+                File.Copy(JsonStore.FilePath, dlg.FileName, true);
+                MessageBox.Show("Backup saved.");
+            }
+        }
+
+        private void ManageDepartments_Click(object s, RoutedEventArgs e) =>
+            ManageList(
+                "Departments",
+                JsonStore
+                    .Data.Departments.Select(x =>
+                        $"{x.Code} | {x.Name} | Rs {x.DefaultPrice} | Active={x.Active}"
+                    )
+                    .ToList(),
+                "Add/edit records in the JSON file for this starter release."
+            );
+
+        private void ManageDoctors_Click(object s, RoutedEventArgs e) =>
+            ManageList(
+                "Doctors",
+                JsonStore
+                    .Data.Doctors.Select(x =>
+                        $"{x.Name} | Department={x.DepartmentCode} | Rs {x.DefaultPrice} | Active={x.Active}"
+                    )
+                    .ToList(),
+                "Add/edit records in the JSON file for this starter release."
+            );
+
+        private void ManageShifts_Click(object s, RoutedEventArgs e) =>
+            ManageList(
+                "Shifts",
+                JsonStore
+                    .Data.Shifts.Select(x =>
+                        $"{x.Name} | {x.StartTime}-{x.EndTime} | Active={x.Active}"
+                    )
+                    .ToList(),
+                "Add/edit records in the JSON file for this starter release."
+            );
+
+        private void ManageCounters_Click(object s, RoutedEventArgs e) =>
+            ManageList(
+                "Counters",
+                JsonStore
+                    .Data.Counters.Select(x =>
+                        $"{x.Name} | Printer={x.PrinterName} | Active={x.Active}"
+                    )
+                    .ToList(),
+                "Add/edit records in the JSON file for this starter release."
+            );
+
+        private void ManagePrinters_Click(object s, RoutedEventArgs e) =>
+            ManageList(
+                "Printers",
+                JsonStore
+                    .Data.Printers.Select(x =>
+                        $"{x.Name} | Windows printer={x.WindowsPrinterName} | {x.PaperWidthMm}mm | Active={x.Active}"
+                    )
+                    .ToList(),
+                "Set WindowsPrinterName to the exact installed printer name in clinic-data.json."
+            );
+
+        private void ManageUsers_Click(object s, RoutedEventArgs e) =>
+            ManageList(
+                "Users",
+                JsonStore
+                    .Data.Users.Select(x =>
+                        $"{x.Username} | {x.FullName} | {x.Role} | Active={x.Active}"
+                    )
+                    .ToList(),
+                "New user passwords must be hashed. Ask for a future version with a dedicated user editor."
+            );
+
+        private void ManageList(
+            string title,
+            System.Collections.Generic.List<string> rows,
+            string note
+        )
+        {
+            if (!IsAdmin())
+                return;
+            MessageBox.Show(
+                string.Join(Environment.NewLine, rows)
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + note,
+                title,
+                MessageBoxButton.OK,
+                MessageBoxImage.Information
+            );
+        }
+    }
+
+    public class LoginWindow : Window
+    {
+        public User AuthenticatedUser { get; private set; }
+        private TextBox username;
+        private PasswordBox password;
+
+        public LoginWindow()
+        {
+            Title = "Clinic Queue Login";
+            Width = 380;
+            Height = 300;
+            ResizeMode = ResizeMode.NoResize;
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            var p = new StackPanel { Margin = new Thickness(22) };
+            p.Children.Add(
+                new TextBlock
+                {
+                    Text = "Clinic Queue System",
+                    FontSize = 22,
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(0, 0, 0, 14),
+                }
+            );
+            p.Children.Add(new TextBlock { Text = "Username" });
+            username = new TextBox { Text = "admin" };
+            p.Children.Add(username);
+            p.Children.Add(new TextBlock { Text = "Password" });
+            password = new PasswordBox { Padding = new Thickness(7), Margin = new Thickness(4) };
+            p.Children.Add(password);
+            var b = new Button { Content = "Sign in", Margin = new Thickness(4, 14, 4, 4) };
+            b.Click += SignIn;
+            p.Children.Add(b);
+            p.Children.Add(
+                new TextBlock
+                {
+                    Text = "First login: admin / admin123",
+                    Foreground = System.Windows.Media.Brushes.Gray,
+                    Margin = new Thickness(4),
+                }
+            );
+            Content = p;
+            Loaded += (s, e) => password.Focus();
+        }
+
+        private void SignIn(object s, RoutedEventArgs e)
+        {
+            var u = JsonStore.Data.Users.FirstOrDefault(x =>
+                x.Active
+                && string.Equals(
+                    x.Username,
+                    username.Text.Trim(),
+                    StringComparison.OrdinalIgnoreCase
+                )
+            );
+            if (u != null && PasswordService.Verify(password.Password, u.PasswordHash))
+            {
+                AuthenticatedUser = u;
+                DialogResult = true;
+                Close();
+            }
+            else
+                MessageBox.Show(
+                    "Invalid username or password.",
+                    "Sign in failed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
+        }
+    }
 }
