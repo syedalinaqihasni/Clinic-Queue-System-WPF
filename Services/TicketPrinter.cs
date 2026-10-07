@@ -1,2 +1,64 @@
-using System; using System.Drawing; using System.Drawing.Printing; using ClinicQueueSystem.Models;
-namespace ClinicQueueSystem.Services { public static class TicketPrinter { public static void Print(Ticket t){ string printer=string.Empty; var cfg=JsonStore.Data.Printers.Find(p=>p.Active && !string.IsNullOrWhiteSpace(p.WindowsPrinterName)); if(cfg!=null) printer=cfg.WindowsPrinterName; var doc=new PrintDocument(); if(!string.IsNullOrWhiteSpace(printer)) doc.PrinterSettings.PrinterName=printer; if(!doc.PrinterSettings.IsValid) throw new InvalidOperationException("No valid Windows printer is configured. Install your printer and set its exact Windows printer name under Admin > Printers."); doc.DefaultPageSettings.Margins=new Margins(8,8,8,8); doc.PrintPage+=(s,e)=>{ float y=0; float w=e.MarginBounds.Width; using(var center=new StringFormat{Alignment=StringAlignment.Center}) using(var normal=new Font("Arial",9)) using(var bold=new Font("Arial",11,FontStyle.Bold)) using(var big=new Font("Arial",24,FontStyle.Bold)){ Action<string,Font> line=(txt,font)=>{e.Graphics.DrawString(txt,font,Brushes.Black,new RectangleF(0,y,w,font.GetHeight(e.Graphics)+5),center);y+=font.GetHeight(e.Graphics)+5;}; line(JsonStore.Data.ClinicName,bold);line("QUEUE TICKET",normal);line(t.TicketNumber,big);line(t.DepartmentName,bold);if(!string.IsNullOrWhiteSpace(t.DoctorName))line(t.DoctorName,normal);line("Date: "+t.Date,normal);line("Time: "+t.Time,normal);line("Shift: "+t.ShiftName,normal);line("Counter: "+t.CounterName,normal);line("Fee: Rs. "+t.Price.ToString("0.00"),bold);line(JsonStore.Data.TicketFooter,normal);} e.HasMorePages=false;}; doc.Print(); } } }
+using System;
+using System.Drawing;
+using System.Drawing.Printing;
+using ClinicQueueSystem.Models;
+
+namespace ClinicQueueSystem.Services
+{
+    public static class TicketPrinter
+    {
+        public static void Print(Ticket t)
+        {
+            string printer = string.Empty;
+            var cfg = JsonStore.Data.Printers.Find(p =>
+                p.Active && !string.IsNullOrWhiteSpace(p.WindowsPrinterName)
+            );
+            if (cfg != null)
+                printer = cfg.WindowsPrinterName;
+            var doc = new PrintDocument();
+            if (!string.IsNullOrWhiteSpace(printer))
+                doc.PrinterSettings.PrinterName = printer;
+            if (!doc.PrinterSettings.IsValid)
+                throw new InvalidOperationException(
+                    "No valid Windows printer is configured. Install your printer and set its exact Windows printer name under Admin > Printers."
+                );
+            doc.DefaultPageSettings.Margins = new Margins(8, 8, 8, 8);
+            doc.PrintPage += (s, e) =>
+            {
+                float y = 0;
+                float w = e.MarginBounds.Width;
+                using (var center = new StringFormat { Alignment = StringAlignment.Center })
+                using (var normal = new Font("Arial", 9))
+                using (var bold = new Font("Arial", 11, FontStyle.Bold))
+                using (var big = new Font("Arial", 24, FontStyle.Bold))
+                {
+                    Action<string, Font> line = (txt, font) =>
+                    {
+                        e.Graphics.DrawString(
+                            txt,
+                            font,
+                            Brushes.Black,
+                            new RectangleF(0, y, w, font.GetHeight(e.Graphics) + 5),
+                            center
+                        );
+                        y += font.GetHeight(e.Graphics) + 5;
+                    };
+                    line(JsonStore.Data.ClinicName, bold);
+                    line("QUEUE TICKET", normal);
+                    line(t.TicketNumber, big);
+                    line(t.DepartmentName, bold);
+                    if (!string.IsNullOrWhiteSpace(t.DoctorName))
+                        line(t.DoctorName, normal);
+                    line("Date: " + t.Date, normal);
+                    line("Time: " + t.Time, normal);
+                    line("Shift: " + t.ShiftName, normal);
+                    line("Counter: " + t.CounterName, normal);
+                    line("Fee: Rs. " + t.Price.ToString("0.00"), bold);
+                    line(JsonStore.Data.TicketFooter, normal);
+                }
+                e.HasMorePages = false;
+            };
+            doc.Print();
+        }
+    }
+}
