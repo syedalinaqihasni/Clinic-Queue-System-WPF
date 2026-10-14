@@ -1,0 +1,15 @@
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Windows;
+[assembly: AssemblyTitle("Clinic Queue System")]
+[assembly: AssemblyDescription("WPF clinic queue desktop application with JSON file storage")]
+[assembly: AssemblyConfiguration("")]
+[assembly: AssemblyCompany("Hasni Developers")]
+[assembly: AssemblyProduct("Clinic Queue System")]
+[assembly: AssemblyCopyright("Copyright © Hasni Developers")]
+[assembly: AssemblyTrademark("")]
+[assembly: AssemblyCulture("")]
+[assembly: ComVisible(false)]
+[assembly: ThemeInfo(ResourceDictionaryLocation.None, ResourceDictionaryLocation.SourceAssembly)]
+[assembly: AssemblyVersion("1.2.1.0")]
+[assembly: AssemblyFileVersion("1.2.1.0")]
