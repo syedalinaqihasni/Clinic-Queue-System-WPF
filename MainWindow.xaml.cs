@@ -97,15 +97,16 @@ namespace ClinicQueueSystem
         {
             var d = DepartmentCombo.SelectedItem as Department;
             var sh = ShiftCombo.SelectedItem as Shift;
+
             if (d == null || sh == null)
             {
                 NextTicketLabel.Text = "---";
                 return;
             }
-            string key = DateTime.Now.ToString("yyyy-MM-dd") + "|" + sh.Name + "|" + d.Code;
-            int n;
-            JsonStore.Data.Sequences.TryGetValue(key, out n);
-            NextTicketLabel.Text = d.Code + (n + 1).ToString("000");
+
+            int next = QueueService.GetNextSequence(d, sh);
+
+            NextTicketLabel.Text = d.Code + next.ToString("000");
         }
 
         private void Save_Click(object s, RoutedEventArgs e)
