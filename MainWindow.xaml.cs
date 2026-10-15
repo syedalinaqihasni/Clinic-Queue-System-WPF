@@ -18,6 +18,47 @@ namespace ClinicQueueSystem
         private void LoadCombos() { DepartmentCombo.ItemsSource = JsonStore.Data.Departments.Where(x => x.Active).ToList(); ShiftCombo.ItemsSource = JsonStore.Data.Shifts.Where(x => x.Active).ToList(); CounterCombo.ItemsSource = JsonStore.Data.Counters.Where(x => x.Active).ToList(); if (DepartmentCombo.Items.Count > 0) DepartmentCombo.SelectedIndex = 0; if (ShiftCombo.Items.Count > 0) ShiftCombo.SelectedIndex = 0; if (CounterCombo.Items.Count > 0) CounterCombo.SelectedIndex = 0; }
         private void Department_Changed(object s, SelectionChangedEventArgs e) { var d = DepartmentCombo.SelectedItem as Department; DoctorCombo.ItemsSource = d == null ? null : JsonStore.Data.Doctors.Where(x => x.Active && (string.IsNullOrWhiteSpace(x.DepartmentCode) || x.DepartmentCode == d.Code)).ToList(); if (d != null) PriceBox.Text = d.DefaultPrice.ToString("0.00", CultureInfo.InvariantCulture); PreviewDepartment.Text = d == null ? "Select department" : d.Name; UpdatePreview(); }
         private void UpdatePreview() { var d = DepartmentCombo.SelectedItem as Department; var sh = ShiftCombo.SelectedItem as Shift; if (d == null || sh == null) { NextTicketLabel.Text = "---"; return; } string key = DateTime.Now.ToString("yyyy-MM-dd") + "|" + sh.Name + "|" + d.Code; int n; JsonStore.Data.Sequences.TryGetValue(key, out n); NextTicketLabel.Text = d.Code + (n + 1).ToString("000"); }
+
+        private void Save_Click(object s, RoutedEventArgs e)
+        {
+            try
+            {
+                var d = DepartmentCombo.SelectedItem as Department;
+                var doc = DoctorCombo.SelectedItem as Doctor;
+                var sh = ShiftCombo.SelectedItem as Shift;
+                var c = CounterCombo.SelectedItem as Counter;
+
+                decimal price;
+
+                if (!decimal.TryParse(
+                    PriceBox.Text,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out price) || price < 0)
+                {
+                    throw new InvalidOperationException(
+                        "Enter a valid non-negative fee.");
+                }
+
+                var t = QueueService.Issue(
+                    d, doc, sh, c, price, _user.Username);
+
+                // Save the ticket information without printing.
+                StatusLabel.Text = "Saved ticket " + t.TicketNumber;
+                FooterStatus.Text = "Last ticket: " + t.TicketNumber;
+
+                RefreshGrids();
+                UpdatePreview();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "Ticket save error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
         private void Print_Click(object s, RoutedEventArgs e) { try { var d = DepartmentCombo.SelectedItem as Department; var doc = DoctorCombo.SelectedItem as Doctor; var sh = ShiftCombo.SelectedItem as Shift; var c = CounterCombo.SelectedItem as Counter; decimal price; if (!decimal.TryParse(PriceBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out price) || price < 0) throw new InvalidOperationException("Enter a valid non-negative fee."); var t = QueueService.Issue(d, doc, sh, c, price, _user.Username); TicketPrinter.Print(t); StatusLabel.Text = "Printed ticket " + t.TicketNumber; FooterStatus.Text = "Last ticket: " + t.TicketNumber; RefreshGrids(); UpdatePreview(); } catch (Exception ex) { MessageBox.Show(ex.Message, "Ticket error", MessageBoxButton.OK, MessageBoxImage.Error); } }
         private void RefreshGrids() { RecentGrid.ItemsSource = null; RecentGrid.ItemsSource = JsonStore.Data.Tickets.OrderByDescending(x => x.Date).ThenByDescending(x => x.Time).Take(12).Select(x => new { x.TicketNumber, x.DepartmentName, x.DoctorName, x.ShiftName, x.Time, x.Price, x.Status }).ToList(); HistoryGrid.ItemsSource = null; HistoryGrid.ItemsSource = JsonStore.Data.Tickets.OrderByDescending(x => x.Date).ThenByDescending(x => x.Time).ToList(); }
         private Ticket SelectedTicket() => HistoryGrid.SelectedItem as Ticket;
