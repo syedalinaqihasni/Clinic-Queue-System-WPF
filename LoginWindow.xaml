@@ -16,32 +16,39 @@
             <ColumnDefinition Width="1*" />
         </Grid.ColumnDefinitions>
         <Border Grid.Column="0" Background="#17365D">
+
             <Grid Margin="54">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
+
+                <!--  Header  -->
                 <StackPanel>
                     <TextBlock
                         FontSize="16"
                         FontWeight="Bold"
                         Foreground="White"
                         Text="CLINIC QUEUE SYSTEM" />
+
                     <TextBlock
                         Margin="0,40,0,14"
                         FontSize="36"
                         FontWeight="Bold"
                         Foreground="White"
-                        Text="A calmer, faster reception."
+                        Text="Better queues.Better flow."
                         TextWrapping="Wrap" />
+
                     <TextBlock
                         MaxWidth="420"
                         FontSize="18"
                         Foreground="#D6E4F4"
-                        Text="Issue queue tickets, manage departments, and keep your clinic moving."
+                        Text="Create patient tickets, organize OPD departments, and manage daily queues from one simple reception application."
                         TextWrapping="Wrap" />
                 </StackPanel>
+
+                <!--  Feature panel  -->
                 <Border
                     Grid.Row="1"
                     Margin="0,30"
@@ -49,30 +56,60 @@
                     VerticalAlignment="Center"
                     Background="#234976"
                     CornerRadius="18">
+
                     <StackPanel>
                         <TextBlock
                             FontSize="12"
                             FontWeight="Bold"
                             Foreground="#C7D9ED"
-                            Text="TODAY AT A GLANCE" />
+                            Text="BUILT FOR DAILY CLINIC OPERATIONS" />
+
                         <TextBlock
                             Margin="0,12,0,8"
                             FontSize="25"
                             FontWeight="SemiBold"
                             Foreground="White"
-                            Text="Simple. Local. Reliable." />
+                            Text="Organized. Efficient. Reliable." />
+
                         <TextBlock
                             FontSize="15"
                             Foreground="#D6E4F4"
-                            Text="Designed for a single reception PC with local JSON storage and thermal ticket printing."
+                            Text="Manage General OPD, Consultant OPD, and ENT OPD queues independently. Generate sequential ticket numbers, record shift details, and print clear patient tickets using a thermal printer."
+                            TextWrapping="Wrap" />
+
+                        <TextBlock
+                            Margin="0,18,0,0"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Foreground="White"
+                            Text="One reception. Separate queues. Smoother service."
                             TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
-                <TextBlock
-                    Grid.Row="2"
-                    FontSize="12"
-                    Foreground="#C7D9ED"
-                    Text="CLINIC QUEUE SYSTEM  •  VERSION 1.2.1" />
+
+                <!--  Footer: separate columns prevent overlapping  -->
+                <Grid Grid.Row="2" Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Foreground="#C7D9ED"
+                        Text="CLINIC QUEUE SYSTEM  •  VERSION 1.2.2" />
+
+                    <TextBlock
+                        Grid.Column="1"
+                        Margin="12,0,0,0"
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Foreground="#C7D9ED"
+                        Text="© 2026 Hasni Developers"
+                        TextAlignment="Right" />
+                </Grid>
             </Grid>
         </Border>
         <Grid Grid.Column="1" Margin="50">
@@ -138,22 +175,12 @@
                         Content="Sign in securely"
                         FontSize="16"
                         FontWeight="Bold"
-                        Foreground="White" />
+                        Foreground="White"
+                        IsDefault="True" />
                     <TextBlock
                         x:Name="ErrorText"
                         Margin="0,12,0,0"
                         Foreground="#B42318"
-                        TextWrapping="Wrap" />
-                    <TextBlock
-                        Margin="0,22,0,0"
-                        FontSize="12"
-                        Foreground="#7B8797"
-                        Text="First run: admin / admin123" />
-                    <TextBlock
-                        Margin="0,4,0,0"
-                        FontSize="12"
-                        Foreground="#7B8797"
-                        Text="Change the default password before real clinic use."
                         TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
