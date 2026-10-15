@@ -1,14 +1,103 @@
 using System;
 using System.Collections.Generic;
+
 namespace ClinicQueueSystem.Models
 {
-    public class AppData { public string ClinicName { get; set; } = "ABC Clinic"; public string TicketFooter { get; set; } = "Please wait for your turn"; public List<User> Users { get; set; } = new List<User>(); public List<Department> Departments { get; set; } = new List<Department>(); public List<Doctor> Doctors { get; set; } = new List<Doctor>(); public List<Shift> Shifts { get; set; } = new List<Shift>(); public List<Counter> Counters { get; set; } = new List<Counter>(); public List<PrinterConfig> Printers { get; set; } = new List<PrinterConfig>(); public List<Ticket> Tickets { get; set; } = new List<Ticket>(); public List<AuditEntry> Audit { get; set; } = new List<AuditEntry>(); public Dictionary<string, int> Sequences { get; set; } = new Dictionary<string, int>(); }
-    public class User { public string Username { get; set; } public string PasswordHash { get; set; } public string FullName { get; set; } public string Role { get; set; } = "RECEPTIONIST"; public bool Active { get; set; } = true; }
-    public class Department { public string Code { get; set; } public string Name { get; set; } public decimal DefaultPrice { get; set; } public bool Active { get; set; } = true; public override string ToString() => Name; }
-    public class Doctor { public string Name { get; set; } public string DepartmentCode { get; set; } public decimal DefaultPrice { get; set; } public bool Active { get; set; } = true; public override string ToString() => Name; }
-    public class Shift { public string Name { get; set; } public string StartTime { get; set; } public string EndTime { get; set; } public bool Active { get; set; } = true; public override string ToString() => Name; }
-    public class Counter { public string Name { get; set; } public string PrinterName { get; set; } public bool Active { get; set; } = true; public override string ToString() => Name; }
-    public class PrinterConfig { public string Name { get; set; } public string WindowsPrinterName { get; set; } public int PaperWidthMm { get; set; } = 80; public bool Active { get; set; } = true; public override string ToString() => Name; }
-    public class Ticket { public string TicketNumber { get; set; } public int Sequence { get; set; } public string Date { get; set; } public string Time { get; set; } public string DepartmentCode { get; set; } public string DepartmentName { get; set; } public string DoctorName { get; set; } public string ShiftName { get; set; } public string CounterName { get; set; } public decimal Price { get; set; } public string Status { get; set; } = "PRINTED"; public int PrintCount { get; set; } = 1; public string CreatedBy { get; set; } }
-    public class AuditEntry { public string At { get; set; } public string User { get; set; } public string Action { get; set; } public string Details { get; set; } }
+    public class AppData
+    {
+        public string ClinicName { get; set; } = "ABC Clinic";
+        public string TicketFooter { get; set; } = "Please wait for your turn";
+        public List<User> Users { get; set; } = new List<User>();
+        public List<Department> Departments { get; set; } = new List<Department>();
+        public List<Doctor> Doctors { get; set; } = new List<Doctor>();
+        public List<Shift> Shifts { get; set; } = new List<Shift>();
+        public List<Counter> Counters { get; set; } = new List<Counter>();
+        public List<PrinterConfig> Printers { get; set; } = new List<PrinterConfig>();
+        public List<Ticket> Tickets { get; set; } = new List<Ticket>();
+        public List<AuditEntry> Audit { get; set; } = new List<AuditEntry>();
+        public Dictionary<string, int> Sequences { get; set; } = new Dictionary<string, int>();
+    }
+
+    public class User
+    {
+        public string Username { get; set; }
+        public string PasswordHash { get; set; }
+        public string FullName { get; set; }
+        public string Role { get; set; } = "RECEPTIONIST";
+        public bool Active { get; set; } = true;
+    }
+
+    public class Department
+    {
+        public string Code { get; set; }
+        public string Name { get; set; }
+        public decimal DefaultPrice { get; set; }
+        public bool Active { get; set; } = true;
+
+        public override string ToString() => Name;
+    }
+
+    public class Doctor
+    {
+        public string Name { get; set; }
+        public string DepartmentCode { get; set; }
+        public decimal DefaultPrice { get; set; }
+        public bool Active { get; set; } = true;
+
+        public override string ToString() => Name;
+    }
+
+    public class Shift
+    {
+        public string Name { get; set; }
+        public string StartTime { get; set; }
+        public string EndTime { get; set; }
+        public bool Active { get; set; } = true;
+
+        public override string ToString() => Name;
+    }
+
+    public class Counter
+    {
+        public string Name { get; set; }
+        public string PrinterName { get; set; }
+        public bool Active { get; set; } = true;
+
+        public override string ToString() => Name;
+    }
+
+    public class PrinterConfig
+    {
+        public string Name { get; set; }
+        public string WindowsPrinterName { get; set; }
+        public int PaperWidthMm { get; set; } = 80;
+        public bool Active { get; set; } = true;
+
+        public override string ToString() => Name;
+    }
+
+    public class Ticket
+    {
+        public string TicketNumber { get; set; }
+        public int Sequence { get; set; }
+        public string Date { get; set; }
+        public string Time { get; set; }
+        public string DepartmentCode { get; set; }
+        public string DepartmentName { get; set; }
+        public string DoctorName { get; set; }
+        public string ShiftName { get; set; }
+        public string CounterName { get; set; }
+        public decimal Price { get; set; }
+        public string Status { get; set; } = "PRINTED";
+        public int PrintCount { get; set; } = 1;
+        public string CreatedBy { get; set; }
+    }
+
+    public class AuditEntry
+    {
+        public string At { get; set; }
+        public string User { get; set; }
+        public string Action { get; set; }
+        public string Details { get; set; }
+    }
 }
