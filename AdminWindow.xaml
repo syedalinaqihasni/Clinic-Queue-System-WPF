@@ -175,6 +175,26 @@
                         IsReadOnly="True" />
                 </Grid>
             </TabItem>
+            <TabItem Header="Backup">
+                <StackPanel MaxWidth="700" Margin="20">
+                    <TextBlock
+                        Margin="4,4,4,12"
+                        FontSize="22"
+                        FontWeight="Bold"
+                        Text="Data storage and backup" />
+                    <TextBlock x:Name="StoragePathText" TextWrapping="Wrap" />
+                    <WrapPanel Margin="0,12">
+                        <Button Click="Backup_Click" Content="Create backup" />
+                        <Button Click="Restore_Click" Content="Restore backup" />
+                        <Button Click="OpenFolder_Click" Content="Open data folder" />
+                    </WrapPanel>
+                    <TextBlock
+                        Margin="4,12"
+                        Foreground="#52647A"
+                        Text="JSON is a local file format. Keep a backup before editing the JSON directly. This app is intended for a single reception PC; simultaneous writes from multiple PCs are not safe with a shared JSON file."
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </TabItem>
             <TabItem Header="JSON Editor">
                 <Grid Margin="12">
                     <Grid.RowDefinitions>
@@ -209,26 +229,6 @@
                             Foreground="White" />
                     </StackPanel>
                 </Grid>
-            </TabItem>
-            <TabItem Header="Backup">
-                <StackPanel MaxWidth="700" Margin="20">
-                    <TextBlock
-                        Margin="4,4,4,12"
-                        FontSize="22"
-                        FontWeight="Bold"
-                        Text="Data storage and backup" />
-                    <TextBlock x:Name="StoragePathText" TextWrapping="Wrap" />
-                    <WrapPanel Margin="0,12">
-                        <Button Click="Backup_Click" Content="Create backup" />
-                        <Button Click="Restore_Click" Content="Restore backup" />
-                        <Button Click="OpenFolder_Click" Content="Open data folder" />
-                    </WrapPanel>
-                    <TextBlock
-                        Margin="4,12"
-                        Foreground="#52647A"
-                        Text="JSON is a local file format. Keep a backup before editing the JSON directly. This app is intended for a single reception PC; simultaneous writes from multiple PCs are not safe with a shared JSON file."
-                        TextWrapping="Wrap" />
-                </StackPanel>
             </TabItem>
         </TabControl>
         <TextBlock
