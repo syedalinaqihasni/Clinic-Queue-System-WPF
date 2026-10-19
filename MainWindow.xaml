@@ -43,7 +43,7 @@
                 </StackPanel>
             </DockPanel>
         </Border>
-        <TabControl Grid.Row="1" Margin="14">
+        <TabControl Grid.Row="1" Margin="14,14,14,14">
             <TabItem Header="Reception">
                 <Grid Margin="18">
                     <Grid.ColumnDefinitions>
@@ -171,6 +171,323 @@
                         IsReadOnly="True"
                         SelectionMode="Single" />
                 </DockPanel>
+            </TabItem>
+
+            <TabItem Header="Summary">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="2*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0">
+                        <WrapPanel Margin="0,0,0,8">
+                            <TextBlock
+                                Margin="4"
+                                VerticalAlignment="Center"
+                                Text="From:" />
+                            <DatePicker
+                                x:Name="SummaryStartDate"
+                                Width="135"
+                                Margin="4" />
+
+                            <TextBlock
+                                Margin="4"
+                                VerticalAlignment="Center"
+                                Text="To:" />
+                            <DatePicker
+                                x:Name="SummaryEndDate"
+                                Width="135"
+                                Margin="4" />
+
+                            <TextBlock
+                                Margin="4"
+                                VerticalAlignment="Center"
+                                Text="Group by:" />
+
+                            <ComboBox
+                                x:Name="SummaryPeriodCombo"
+                                Width="125"
+                                Margin="4"
+                                SelectedIndex="0">
+                                <ComboBoxItem Content="Daily" />
+                                <ComboBoxItem Content="Weekly" />
+                                <ComboBoxItem Content="Monthly" />
+                            </ComboBox>
+
+                            <Button
+                                Margin="4"
+                                Padding="12,6"
+                                Click="SummaryRefresh_Click"
+                                Content="Generate Summary" />
+
+                            <Button
+                                Margin="4"
+                                Padding="12,6"
+                                Click="SummaryExport_Click"
+                                Content="Export Summary CSV" />
+                        </WrapPanel>
+
+                        <TextBlock
+                            Margin="4,0,4,8"
+                            Foreground="#68778D"
+                            Text="Voided tickets are excluded from totals." />
+
+                        <WrapPanel Margin="4,0,4,10">
+
+                            <!--  General OPD Summary  -->
+                            <Border
+                                MinWidth="170"
+                                Margin="0,0,10,10"
+                                Padding="14"
+                                Background="#DCEBFA"
+                                CornerRadius="6">
+                                <StackPanel>
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Text="General OPD" />
+
+                                    <TextBlock
+                                        Margin="0,6,0,0"
+                                        FontSize="12"
+                                        Text="Tickets" />
+                                    <TextBlock
+                                        x:Name="SummaryGeneralOpdTickets"
+                                        FontSize="21"
+                                        FontWeight="Bold"
+                                        Text="0" />
+
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        FontSize="12"
+                                        Text="Grand Total (Rs.)" />
+                                    <TextBlock
+                                        x:Name="SummaryGeneralOpdTotal"
+                                        FontSize="18"
+                                        FontWeight="Bold"
+                                        Text="0.00" />
+                                </StackPanel>
+                            </Border>
+
+                            <!--  Consultants OPD Summary  -->
+                            <Border
+                                MinWidth="170"
+                                Margin="0,0,10,10"
+                                Padding="14"
+                                Background="#E5F3EA"
+                                CornerRadius="6">
+                                <StackPanel>
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Text="Consultants OPD" />
+
+                                    <TextBlock
+                                        Margin="0,6,0,0"
+                                        FontSize="12"
+                                        Text="Tickets" />
+                                    <TextBlock
+                                        x:Name="SummaryConsultantsOpdTickets"
+                                        FontSize="21"
+                                        FontWeight="Bold"
+                                        Text="0" />
+
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        FontSize="12"
+                                        Text="Grand Total (Rs.)" />
+                                    <TextBlock
+                                        x:Name="SummaryConsultantsOpdTotal"
+                                        FontSize="18"
+                                        FontWeight="Bold"
+                                        Text="0.00" />
+                                </StackPanel>
+                            </Border>
+
+                            <!--  Other Departments Summary  -->
+                            <Border
+                                MinWidth="170"
+                                Margin="0,0,10,10"
+                                Padding="14"
+                                Background="#FBE8E8"
+                                CornerRadius="6">
+                                <StackPanel>
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Text="Other Expences" />
+
+                                    <TextBlock
+                                        Margin="0,6,0,0"
+                                        FontSize="12"
+                                        Text="Tickets" />
+                                    <TextBlock
+                                        x:Name="SummaryOtherDepartmentTickets"
+                                        FontSize="21"
+                                        FontWeight="Bold"
+                                        Text="0" />
+
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        FontSize="12"
+                                        Text="Grand Total (Rs.)" />
+                                    <TextBlock
+                                        x:Name="SummaryOtherDepartmentTotal"
+                                        FontSize="18"
+                                        FontWeight="Bold"
+                                        Text="0.00" />
+                                </StackPanel>
+                            </Border>
+
+                            <!--  Morning Shift  -->
+                            <Border
+                                MinWidth="170"
+                                Margin="0,0,10,10"
+                                Padding="14"
+                                Background="#FFF3D6"
+                                CornerRadius="6">
+                                <StackPanel>
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Text="Morning Shift" />
+                                    <TextBlock
+                                        Margin="0,6,0,0"
+                                        FontSize="12"
+                                        Text="Tickets" />
+                                    <TextBlock
+                                        x:Name="SummaryMorningTickets"
+                                        FontSize="21"
+                                        FontWeight="Bold"
+                                        Text="0" />
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        FontSize="12"
+                                        Text="Grand Total (Rs.)" />
+                                    <TextBlock
+                                        x:Name="SummaryMorningTotal"
+                                        FontSize="18"
+                                        FontWeight="Bold"
+                                        Text="0.00" />
+                                </StackPanel>
+                            </Border>
+
+                            <!--  Evening Shift  -->
+                            <Border
+                                MinWidth="170"
+                                Margin="0,0,10,10"
+                                Padding="14"
+                                Background="#E8E4FA"
+                                CornerRadius="6">
+                                <StackPanel>
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Text="Evening Shift" />
+                                    <TextBlock
+                                        Margin="0,6,0,0"
+                                        FontSize="12"
+                                        Text="Tickets" />
+                                    <TextBlock
+                                        x:Name="SummaryEveningTickets"
+                                        FontSize="21"
+                                        FontWeight="Bold"
+                                        Text="0" />
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        FontSize="12"
+                                        Text="Grand Total (Rs.)" />
+                                    <TextBlock
+                                        x:Name="SummaryEveningTotal"
+                                        FontSize="18"
+                                        FontWeight="Bold"
+                                        Text="0.00" />
+                                </StackPanel>
+                            </Border>
+                            <!--  Overall Summary  -->
+                            <Border
+                                MinWidth="170"
+                                Margin="0,0,10,10"
+                                Padding="14"
+                                Background="#E8EEF6"
+                                CornerRadius="6">
+                                <StackPanel>
+                                    <TextBlock
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Text="Overall Summary" />
+
+                                    <TextBlock
+                                        Margin="0,6,0,0"
+                                        FontSize="12"
+                                        Text="Total Tickets" />
+
+                                    <TextBlock
+                                        x:Name="SummaryTicketCount"
+                                        FontSize="21"
+                                        FontWeight="Bold"
+                                        Text="0" />
+
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        FontSize="12"
+                                        Text="Grand Total (Rs.)" />
+
+                                    <TextBlock
+                                        x:Name="SummaryGrandTotal"
+                                        FontSize="18"
+                                        FontWeight="Bold"
+                                        Text="0.00" />
+                                </StackPanel>
+                            </Border>
+
+                        </WrapPanel>
+                    </StackPanel>
+
+
+                    <TextBlock
+                        Grid.Row="2"
+                        Margin="4,12,4,6"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="Daily Totals" />
+
+                    <DataGrid
+                        x:Name="SummaryDailyGrid"
+                        Grid.Row="3"
+                        Margin="4"
+                        AutoGenerateColumns="False"
+                        CanUserAddRows="False"
+                        HeadersVisibility="Column"
+                        IsReadOnly="True"
+                        SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn
+                                Width="*"
+                                Binding="{Binding Date}"
+                                Header="Date" />
+                            <DataGridTextColumn
+                                Width="*"
+                                Binding="{Binding TicketCount}"
+                                Header="Tickets" />
+                            <DataGridTextColumn
+                                Width="*"
+                                Binding="{Binding TotalPrice, StringFormat=N2}"
+                                Header="Total (Rs.)" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <DataGrid
+                        x:Name="SummaryGrid"
+                        Grid.Row="1"
+                        AutoGenerateColumns="True"
+                        CanUserAddRows="False"
+                        IsReadOnly="True"
+                        SelectionMode="Single" />
+
+                </Grid>
             </TabItem>
             <TabItem Header="Admin">
                 <ScrollViewer>
