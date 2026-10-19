@@ -38,3 +38,14 @@ Change the starter password using **Admin / Data > Users & Roles > Set password*
 JSON is the primary local store because the app has related collections. CSV is used for ticket report exports. The Admin JSON editor lets an administrator edit the complete data document; malformed JSON is rejected and the previous file is preserved through the store's backup behavior. Back up data before direct edits. Do not manually edit the JSON file while the app is running.
 
 This file-based version is suitable for one reception PC. A shared JSON file is not safe for simultaneous writes from multiple PCs; use a coordinated central service if multiple stations need a shared sequence. Thermal printer behavior must be tested with the exact Windows printer driver and printer model. Static checks in this environment confirmed that the XAML files are well-formed, the declared XAML click/selection handlers exist, and C# brace counts are balanced. This Linux environment does not have the Windows WPF/.NET Framework build tools, so the solution could not be compiled or hardware-tested here. Build and test it in Visual Studio on Windows before clinic use.
+
+# Screenshots
+![Screenshot 1](Assets/1.png)
+
+![Screenshot 2](Assets/2.png)
+
+![Screenshot 3](Assets/3.png)
+
+![Screenshot 4](Assets/4.png)
+
+![Screenshot 5](Assets/5.png)
