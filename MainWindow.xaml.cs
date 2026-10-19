@@ -44,7 +44,7 @@ namespace ClinicQueueSystem
             FooterBox.Text = JsonStore.Data.TicketFooter;
             LoadCombos();
 
-            SummaryStartDate.SelectedDate = DateTime.Today.AddDays(-29);
+            SummaryStartDate.SelectedDate = DateTime.Today;
             SummaryEndDate.SelectedDate = DateTime.Today;
 
             RefreshGrids();
