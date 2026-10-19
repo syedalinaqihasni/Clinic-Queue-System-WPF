@@ -16,6 +16,16 @@ namespace ClinicQueueSystem
     {
         private User _user;
 
+        private class SummaryRow
+        {
+            public string Period { get; set; }
+            public string Department { get; set; }
+            public string Doctor { get; set; }
+            public string Shift { get; set; }
+            public int TicketCount { get; set; }
+            public decimal TotalPrice { get; set; }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -33,7 +43,12 @@ namespace ClinicQueueSystem
             ClinicNameBox.Text = JsonStore.Data.ClinicName;
             FooterBox.Text = JsonStore.Data.TicketFooter;
             LoadCombos();
+
+            SummaryStartDate.SelectedDate = DateTime.Today.AddDays(-29);
+            SummaryEndDate.SelectedDate = DateTime.Today;
+
             RefreshGrids();
+            UpdateSummary();
             UpdatePreview();
             foreach (
                 TabItem tab in (
@@ -213,6 +228,341 @@ namespace ClinicQueueSystem
                 .Data.Tickets.OrderByDescending(x => x.Date)
                 .ThenByDescending(x => x.Time)
                 .ToList();
+            UpdateSummary();
+        }
+
+        private void SummaryRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateSummary();
+        }
+
+        private DateTime GetPeriodStart(DateTime date, string period)
+        {
+            if (period == "Weekly")
+            {
+                int daysSinceMonday = ((int)date.DayOfWeek + 6) % 7;
+
+                return date.Date.AddDays(-daysSinceMonday);
+            }
+
+            if (period == "Monthly")
+                return new DateTime(date.Year, date.Month, 1);
+
+            return date.Date;
+        }
+
+        private string FormatPeriod(DateTime date, string period)
+        {
+            if (period == "Weekly")
+                return date.ToString("yyyy-MM-dd") + " week";
+
+            if (period == "Monthly")
+                return date.ToString("yyyy-MM");
+
+            return date.ToString("yyyy-MM-dd");
+        }
+
+        private class DailySummaryRow
+        {
+            public string Date { get; set; }
+            public int TicketCount { get; set; }
+            public decimal TotalPrice { get; set; }
+        }
+
+        private bool UpdateSummary()
+        {
+            if (
+                SummaryGrid == null
+                || SummaryDailyGrid == null
+                || SummaryStartDate == null
+                || SummaryEndDate == null
+                || SummaryPeriodCombo == null
+            )
+            {
+                return false;
+            }
+
+            if (!SummaryStartDate.SelectedDate.HasValue || !SummaryEndDate.SelectedDate.HasValue)
+            {
+                MessageBox.Show(
+                    "Please select both start and end dates.",
+                    "Summary",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
+
+                return false;
+            }
+
+            DateTime startDate = SummaryStartDate.SelectedDate.Value.Date;
+            DateTime endDate = SummaryEndDate.SelectedDate.Value.Date;
+
+            if (startDate > endDate)
+            {
+                MessageBox.Show(
+                    "The start date cannot be later than the end date.",
+                    "Invalid Date Range",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
+
+                return false;
+            }
+
+            if (JsonStore.Data == null || JsonStore.Data.Tickets == null)
+            {
+                return false;
+            }
+
+            string selectedPeriod = SummaryPeriodCombo.SelectedItem is ComboBoxItem periodItem
+                ? periodItem.Content?.ToString() ?? "Daily"
+                : "Daily";
+
+            var tickets = JsonStore
+                .Data.Tickets.Where(t =>
+                    t != null
+                    && !string.Equals(t.Status, "VOID", StringComparison.OrdinalIgnoreCase)
+                )
+                .Select(t =>
+                {
+                    DateTime ticketDate;
+
+                    bool validDate = DateTime.TryParseExact(
+                        t.Date,
+                        "yyyy-MM-dd",
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out ticketDate
+                    );
+
+                    return new
+                    {
+                        Ticket = t,
+                        TicketDate = ticketDate,
+                        ValidDate = validDate,
+                    };
+                })
+                .Where(x =>
+                    x.ValidDate && x.TicketDate.Date >= startDate && x.TicketDate.Date <= endDate
+                )
+                .ToList();
+
+            // Helper to display currency consistently.
+            Func<decimal, string> money = amount =>
+                amount.ToString("N2", CultureInfo.CurrentCulture);
+
+            // Overall totals.
+            SummaryTicketCount.Text = tickets.Count.ToString();
+            SummaryGrandTotal.Text = money(tickets.Sum(x => x.Ticket.Price));
+
+            // Shift summaries.
+            var morning = tickets
+                .Where(x =>
+                    string.Equals(
+                        (x.Ticket.ShiftName ?? "").Trim(),
+                        "Morning",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                .ToList();
+
+            var evening = tickets
+                .Where(x =>
+                    string.Equals(
+                        (x.Ticket.ShiftName ?? "").Trim(),
+                        "Evening",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                .ToList();
+
+            SummaryMorningTickets.Text = morning.Count.ToString();
+            SummaryMorningTotal.Text = money(morning.Sum(x => x.Ticket.Price));
+
+            SummaryEveningTickets.Text = evening.Count.ToString();
+            SummaryEveningTotal.Text = money(evening.Sum(x => x.Ticket.Price));
+
+            // Department summaries.
+            var generalOpd = tickets
+                .Where(x =>
+                    (x.Ticket.DepartmentName ?? "").IndexOf(
+                        "General",
+                        StringComparison.OrdinalIgnoreCase
+                    ) >= 0
+                )
+                .ToList();
+
+            var consultantsOpd = tickets
+                .Where(x =>
+                    (x.Ticket.DepartmentName ?? "").IndexOf(
+                        "Consultant",
+                        StringComparison.OrdinalIgnoreCase
+                    ) >= 0
+                )
+                .ToList();
+
+            var otherDepartments = tickets
+                .Where(x =>
+                {
+                    string department = x.Ticket.DepartmentName ?? "";
+
+                    return department.IndexOf("General", StringComparison.OrdinalIgnoreCase) < 0
+                        && department.IndexOf("Consultant", StringComparison.OrdinalIgnoreCase) < 0;
+                })
+                .ToList();
+
+            SummaryGeneralOpdTickets.Text = generalOpd.Count.ToString();
+            SummaryGeneralOpdTotal.Text = money(generalOpd.Sum(x => x.Ticket.Price));
+
+            SummaryConsultantsOpdTickets.Text = consultantsOpd.Count.ToString();
+            SummaryConsultantsOpdTotal.Text = money(consultantsOpd.Sum(x => x.Ticket.Price));
+
+            SummaryOtherDepartmentTickets.Text = otherDepartments.Count.ToString();
+            SummaryOtherDepartmentTotal.Text = money(otherDepartments.Sum(x => x.Ticket.Price));
+
+            // Detailed report: grouped by the selected daily, weekly or monthly period.
+            var rows = tickets
+                .GroupBy(x => new
+                {
+                    PeriodStart = GetPeriodStart(x.TicketDate.Date, selectedPeriod),
+
+                    Department = x.Ticket.DepartmentName ?? "",
+                    Doctor = x.Ticket.DoctorName ?? "",
+                    Shift = x.Ticket.ShiftName ?? "",
+                })
+                .Select(g => new SummaryRow
+                {
+                    Period = FormatPeriod(g.Key.PeriodStart, selectedPeriod),
+                    Department = g.Key.Department,
+                    Doctor = g.Key.Doctor,
+                    Shift = g.Key.Shift,
+                    TicketCount = g.Count(),
+                    TotalPrice = g.Sum(x => x.Ticket.Price),
+                })
+                .OrderBy(r => r.Period)
+                .ThenBy(r => r.Department)
+                .ThenBy(r => r.Doctor)
+                .ThenBy(r => r.Shift)
+                .ToList();
+
+            SummaryGrid.ItemsSource = rows;
+
+            // Daily totals: one row for each date with tickets.
+            var dailyRows = tickets
+                .GroupBy(x => x.TicketDate.Date)
+                .Select(g => new DailySummaryRow
+                {
+                    Date = g.Key.ToString("yyyy-MM-dd"),
+                    TicketCount = g.Count(),
+                    TotalPrice = g.Sum(x => x.Ticket.Price),
+                })
+                .OrderBy(r => r.Date)
+                .ToList();
+
+            SummaryDailyGrid.ItemsSource = dailyRows;
+
+            return true;
+        }
+
+        private void SummaryExport_Click(object sender, RoutedEventArgs e)
+        {
+            if (!UpdateSummary())
+                return;
+
+            var rows = SummaryGrid.ItemsSource as System.Collections.Generic.List<SummaryRow>;
+
+            var dailyRows =
+                SummaryDailyGrid.ItemsSource as System.Collections.Generic.List<DailySummaryRow>;
+
+            if (rows == null || dailyRows == null)
+                return;
+
+            var dialog = new SaveFileDialog
+            {
+                Title = "Export Summary Report",
+                Filter = "CSV Files (*.csv)|*.csv",
+                FileName = "Clinic_Summary_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".csv",
+                DefaultExt = ".csv",
+                AddExtension = true,
+            };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            var csv = new StringBuilder();
+
+            csv.AppendLine("CLINIC SUMMARY REPORT");
+            csv.AppendLine(
+                "Start Date," + Csv(SummaryStartDate.SelectedDate.Value.ToString("yyyy-MM-dd"))
+            );
+            csv.AppendLine(
+                "End Date," + Csv(SummaryEndDate.SelectedDate.Value.ToString("yyyy-MM-dd"))
+            );
+            csv.AppendLine();
+
+            // Detailed summary.
+            csv.AppendLine("DETAILED SUMMARY");
+            csv.AppendLine("Period,Department,Doctor,Shift,Ticket Count,Total (Rs.)");
+
+            foreach (var row in rows)
+            {
+                csv.AppendLine(
+                    Csv(row.Period)
+                        + ","
+                        + Csv(row.Department)
+                        + ","
+                        + Csv(row.Doctor)
+                        + ","
+                        + Csv(row.Shift)
+                        + ","
+                        + row.TicketCount
+                        + ","
+                        + row.TotalPrice.ToString("0.00", CultureInfo.InvariantCulture)
+                );
+            }
+
+            csv.AppendLine(
+                "GRAND TOTAL,,,,"
+                    + rows.Sum(r => r.TicketCount)
+                    + ","
+                    + rows.Sum(r => r.TotalPrice).ToString("0.00", CultureInfo.InvariantCulture)
+            );
+
+            csv.AppendLine();
+
+            // Daily breakdown.
+            csv.AppendLine("DAILY TOTALS");
+            csv.AppendLine("Date,Ticket Count,Total (Rs.)");
+
+            foreach (var row in dailyRows)
+            {
+                csv.AppendLine(
+                    Csv(row.Date)
+                        + ","
+                        + row.TicketCount
+                        + ","
+                        + row.TotalPrice.ToString("0.00", CultureInfo.InvariantCulture)
+                );
+            }
+
+            csv.AppendLine(
+                "GRAND TOTAL,"
+                    + dailyRows.Sum(r => r.TicketCount)
+                    + ","
+                    + dailyRows
+                        .Sum(r => r.TotalPrice)
+                        .ToString("0.00", CultureInfo.InvariantCulture)
+            );
+
+            // Write UTF-8 CSV.
+            File.WriteAllText(dialog.FileName, csv.ToString(), new UTF8Encoding(true));
+
+            MessageBox.Show(
+                "Summary report exported successfully.",
+                "Export Complete",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information
+            );
         }
 
         private Ticket SelectedTicket() => HistoryGrid.SelectedItem as Ticket;
@@ -359,7 +709,10 @@ namespace ClinicQueueSystem
 
         private bool IsAdmin()
         {
-            if (_user.Role == "ADMIN")
+            if (
+                _user != null
+                && string.Equals(_user.Role, "ADMIN", StringComparison.OrdinalIgnoreCase)
+            )
                 return true;
             MessageBox.Show("Administrator access required.");
             return false;
